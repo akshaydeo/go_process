@@ -1,10 +1,11 @@
 // Helper module for forking and monitoring process
 package process
 
-import (	
+import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 )
 
 // Process monitor
@@ -25,7 +26,9 @@ type ProcessStateListener interface {
 
 // Method to fork a process for given command
 // and return ProcessMonitor
-func Fork(processStateListener ProcessStateListener, cmdName string, cmdArgs ...string) {
+func Fork(processStateListener ProcessStateListener, cmdName string, cmdArgs ...string) *sync.WaitGroup {
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
 	go func() {
 		processMonitor := &ProcessMonitor{}
 		args := strings.Join(cmdArgs, ",")
@@ -34,8 +37,10 @@ func Fork(processStateListener ProcessStateListener, cmdName string, cmdArgs ...
 		if err != nil {
 			processMonitor.Err = err
 			processStateListener.OnError(processMonitor, err)
-		}		
+		}
 		processMonitor.Output = &output
 		processStateListener.OnComplete(processMonitor)
+		wg.Done()
 	}()
+	return wg
 }
